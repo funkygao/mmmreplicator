@@ -1,40 +1,27 @@
-package gtm
+package replicator
 
 import (
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"time"
 	"strings"
+	"time"
 )
 
-type Options struct {
-	After TimestampGenerator
-	Filter OpFilter
-}
-
-type Op struct {
-	Id interface{}
-	Operation string
-	Namespace string
-	Data map[string]interface{}
-	Timestamp bson.MongoTimestamp
-}
-
 type OpLog struct {
-	Timestamp bson.MongoTimestamp "ts"
-	HistoryID int64 "h"
-	MongoVersion int "v"
-	Operation string "op"
-	Namespace string "ns"
-	Object bson.M "o"
-	QueryObject bson.M "o2"
+	Timestamp    bson.MongoTimestamp "ts"
+	HistoryID    int64               "h"
+	MongoVersion int                 "v"
+	Operation    string              "op"
+	Namespace    string              "ns"
+	Object       bson.M              "o"
+	QueryObject  bson.M              "o2"
 }
 
 type OpChan chan *Op
 
 type OpLogEntry map[string]interface{}
 
-type OpFilter func (*Op) bool
+type OpFilter func(*Op) bool
 
 type TimestampGenerator func(*mgo.Session) bson.MongoTimestamp
 
@@ -46,61 +33,6 @@ func ChainOpFilters(filters ...OpFilter) OpFilter {
 			}
 		}
 		return true
-	}
-}
-
-func (this *Op) IsInsert() bool {
-	return this.Operation == "i"
-}
-
-func (this *Op) IsUpdate() bool {
-	return this.Operation == "u"
-}
-
-func (this *Op) IsDelete() bool {
-	return this.Operation == "d"
-}
-
-func (this *Op) ParseNamespace() []string {
-	return strings.SplitN(this.Namespace, ".", 2)
-}
-
-func (this *Op) GetDatabase() string {
-	return this.ParseNamespace()[0]
-}
-
-func (this *Op) GetCollection() string {
-	return this.ParseNamespace()[1]
-}
-
-func (this *Op) FetchData(session *mgo.Session) error {
-	if this.IsDelete() {
-		return nil
-	}
-	collection := session.DB(this.GetDatabase()).C(this.GetCollection())
-	doc := make(map[string]interface{})
-	err := collection.FindId(this.Id).One(doc)
-	if err == nil {
-		this.Data = doc
-		return nil
-	} else {
-		return err
-	}
-}
-
-func (this *Op) ParseLogEntry(entry OpLogEntry) {
-	this.Operation = entry["op"].(string)
-	this.Timestamp = entry["ts"].(bson.MongoTimestamp)
-	// only parse inserts, deletes, and updates	
-	if this.IsInsert() || this.IsDelete() || this.IsUpdate() {
-		var objectField OpLogEntry
-		if this.IsUpdate() {
-			objectField = entry["o2"].(OpLogEntry)
-		} else {
-			objectField = entry["o"].(OpLogEntry)
-		}
-		this.Id = objectField["_id"]
-		this.Namespace = entry["ns"].(string)
 	}
 }
 
@@ -122,7 +54,7 @@ func LastOpTimestamp(session *mgo.Session) bson.MongoTimestamp {
 	return opLog.Timestamp
 }
 
-func GetOpLogQuery(session *mgo.Session, after bson.MongoTimestamp)  *mgo.Query {
+func GetOpLogQuery(session *mgo.Session, after bson.MongoTimestamp) *mgo.Query {
 	query := bson.M{"ts": bson.M{"$gt": after}}
 	collection := OpLogCollection(session)
 	return collection.Find(query).LogReplay().Sort("$natural")
@@ -172,9 +104,9 @@ func FetchDocuments(session *mgo.Session, inOp OpChan, inErr chan error,
 	defer s.Close()
 	for {
 		select {
-		case err:= <-inErr:
+		case err := <-inErr:
 			outErr <- err
-		case op:= <-inOp:
+		case op := <-inOp:
 			fetchErr := op.FetchData(s)
 			if fetchErr == nil || fetchErr == mgo.ErrNotFound {
 				outOp <- op
@@ -195,4 +127,3 @@ func Tail(session *mgo.Session, options *Options) (OpChan, chan error) {
 	go TailOps(session, inOp, inErr, "100s", options)
 	return outOp, outErr
 }
-
