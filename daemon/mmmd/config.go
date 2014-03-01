@@ -11,16 +11,20 @@ type config struct {
 }
 
 type workerConfig struct {
-	dsn string
+	host string
+	port int
 }
 
 func (this *workerConfig) loadConfig(cf *conf.Conf) {
-	host := cf.String("host", "")
-	if host == "" {
+	this.host = cf.String("host", "")
+	if this.host == "" {
 		panic("empty host")
 	}
-	port := cf.Int("port", 27017)
-	this.dsn = fmt.Sprintf("mongodb://%s:%d/", host, port)
+	this.port = cf.Int("port", 27017)
+}
+
+func (this *workerConfig) dsn() string {
+	return fmt.Sprintf("mongodb://%s:%d/", this.host, this.port)
 }
 
 func loadConfig(fn string) *config {
