@@ -1,5 +1,11 @@
 package replicator
 
+import (
+	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
+	"strings"
+)
+
 type Op struct {
 	Id        interface{}
 	Operation string
