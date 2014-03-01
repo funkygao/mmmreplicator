@@ -13,6 +13,7 @@ type config struct {
 type workerConfig struct {
 	host string
 	port int
+	rs   string // replica set
 }
 
 func (this *workerConfig) loadConfig(cf *conf.Conf) {
@@ -21,10 +22,15 @@ func (this *workerConfig) loadConfig(cf *conf.Conf) {
 		panic("empty host")
 	}
 	this.port = cf.Int("port", 27017)
+	this.rs = cf.String("replicaSet", "")
 }
 
 func (this *workerConfig) dsn() string {
-	return fmt.Sprintf("mongodb://%s:%d/", this.host, this.port)
+	addr := fmt.Sprintf("mongodb://%s:%d/", this.host, this.port)
+	if this.rs != "" {
+		addr += "?replicaSet=" + this.rs
+	}
+	return addr
 }
 
 func loadConfig(fn string) *config {
