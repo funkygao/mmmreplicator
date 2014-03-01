@@ -32,7 +32,7 @@ func (this *worker) start(wg *sync.WaitGroup) {
 	session.SetMode(mgo.Monotonic, true)
 	defer session.Close()
 
-	log.Printf("%s started", this)
+	log.Printf("%s connected, enter main loop", this)
 
 	opChan, errChan := replicator.Tail(session, &replicator.Options{nil, nil})
 	for {
