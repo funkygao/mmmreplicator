@@ -17,15 +17,15 @@ func newWorker(cf *workerConfig) *worker {
 	return this
 }
 
-func (this worker) String() string {
-	return "worker[" + this.cf.dsn + "]"
+func (this *worker) String() string {
+	return "worker[" + this.cf.dsn() + "]"
 }
 
 func (this *worker) start(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	log.Printf("%s connecting...", this)
-	session, err := mgo.Dial(this.cf.dsn)
+	session, err := mgo.Dial(this.cf.dsn())
 	if err != nil {
 		panic(err)
 	}
