@@ -18,5 +18,6 @@ func main() {
 		worker.start(wg)
 	}
 
+	// should never happen
 	wg.Wait()
 }
