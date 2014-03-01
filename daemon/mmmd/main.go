@@ -1,13 +1,16 @@
 package main
 
 import (
-	"flag"
 	"sync"
 )
 
 func main() {
-	flag.Parse()
-	cf := loadConfig(CONFIG_FILE)
+	parseFlags()
+	if showVersion {
+		ShowVersionAndExit()
+	}
+
+	cf := loadConfig(confiFile)
 	wg := new(sync.WaitGroup)
 	for _, w := range cf.workers {
 		wg.Add(1)
