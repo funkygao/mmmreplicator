@@ -42,7 +42,12 @@ func (this *worker) start(wg *sync.WaitGroup) {
 
 		case op := <-opChan:
 			log.Printf("%+v", op)
+			this.replayOp(op)
 		}
 
 	}
+}
+
+func (this *worker) replayOp(op *replicator.Op) {
+
 }
