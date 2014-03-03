@@ -22,6 +22,11 @@ type OpLogEntry map[string]interface{}
 
 type OpFilter func(*Op) bool
 
+type Options struct {
+	After  TimestampGenerator
+	Filter OpFilter
+}
+
 type TimestampGenerator func(*mgo.Session) bson.MongoTimestamp
 
 func ChainOpFilters(filters ...OpFilter) OpFilter {
@@ -85,6 +90,7 @@ func TailOps(session *mgo.Session, channel OpChan,
 			}
 			currTimestamp = op.Timestamp
 		}
+
 		if err = iter.Close(); err != nil {
 			errChan <- err
 			return err
@@ -92,6 +98,7 @@ func TailOps(session *mgo.Session, channel OpChan,
 		if iter.Timeout() {
 			continue
 		}
+
 		iter = GetOpLogQuery(s, currTimestamp).Tail(duration)
 	}
 	return nil
